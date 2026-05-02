@@ -1,0 +1,27 @@
+# -----------------------------------------------------------------------
+# Example tfvars for step00 — copy to terraform.tfvars and fill in values
+#
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# NOTE: terraform.tfvars is in .gitignore to avoid committing secrets.
+# -----------------------------------------------------------------------
+
+# AWS region to deploy into
+aws_region = "ap-northeast-1"
+
+# Resource name prefix
+prefix = "scaling-step00"
+
+# Paste the contents of your public SSH key here (cat ~/.ssh/id_rsa.pub)
+public_key = "ssh-rsa AAAA...your-public-key-here... user@host"
+
+# Restrict SSH access to your own IP for better security
+# To find your public IP: curl -s https://checkip.amazonaws.com
+ssh_cidr = "0.0.0.0/0" # Change to "YOUR.IP.ADDRESS/32" in practice
+
+# AMI ID for Amazon Linux 2023 in ap-northeast-1
+# To get the latest AMI ID dynamically:
+#   aws ssm get-parameter \
+#     --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 \
+#     --query Parameter.Value --output text
+ami_id = "ami-0599b6e53ca798bb2"
