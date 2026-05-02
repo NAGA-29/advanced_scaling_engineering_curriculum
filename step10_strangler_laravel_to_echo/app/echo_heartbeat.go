@@ -86,7 +86,7 @@ func main() {
 	go func() {
 		e.Logger.Infof("Starting server on :%s", port)
 		if err := e.StartServer(srv); err != nil && err != http.ErrServerClosed {
-			e.Logger.Fatal("shutting down the server")
+			e.Logger.Fatalf("server error: %v", err)
 		}
 	}()
 
