@@ -1,0 +1,2 @@
+# advanced_scaling_engineering_curriculum
+プロジェクトをスケールさせていく方法を実際に試すレポジトリ
