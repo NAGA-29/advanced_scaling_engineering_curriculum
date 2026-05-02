@@ -1,0 +1,106 @@
+version: "3.9"
+
+# -------------------------------------------------------
+# STEP 03: MySQL Primary + Replica 環境
+# -------------------------------------------------------
+# 起動: docker compose up -d
+# 停止: docker compose down -v
+#
+# ポート:
+#   Primary: localhost:3307
+#   Replica: localhost:3308
+#
+# 接続情報:
+#   root:    root / rootpassword
+#   apiuser: apiuser / apipassword
+#   DB名:    appdb
+# -------------------------------------------------------
+
+services:
+
+  # -------------------------------------------------------
+  # MySQL Primary (書き込み)
+  # -------------------------------------------------------
+  mysql-primary:
+    image: mysql:8.0
+    container_name: mysql-primary
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: appdb
+      MYSQL_USER: apiuser
+      MYSQL_PASSWORD: apipassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_primary_data:/var/lib/mysql
+      - ./docker/primary/my.cnf:/etc/mysql/conf.d/replication.cnf:ro
+      - ./docker/primary/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - mysql-net
+
+  # -------------------------------------------------------
+  # MySQL Replica (読み込み)
+  # -------------------------------------------------------
+  mysql-replica:
+    image: mysql:8.0
+    container_name: mysql-replica
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: appdb
+      MYSQL_USER: apiuser
+      MYSQL_PASSWORD: apipassword
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_replica_data:/var/lib/mysql
+      - ./docker/replica/my.cnf:/etc/mysql/conf.d/replication.cnf:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - mysql-net
+    depends_on:
+      mysql-primary:
+        condition: service_healthy
+
+  # -------------------------------------------------------
+  # レプリケーション初期化コンテナ
+  # Primary と Replica 両方が healthy になった後に一度だけ実行される。
+  # -------------------------------------------------------
+  mysql-replica-init:
+    image: mysql:8.0
+    container_name: mysql-replica-init
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - ./docker/replica-init/setup_replication.sh:/setup_replication.sh:ro
+    command: ["bash", "/setup_replication.sh"]
+    networks:
+      - mysql-net
+    depends_on:
+      mysql-primary:
+        condition: service_healthy
+      mysql-replica:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  mysql_primary_data:
+    driver: local
+  mysql_replica_data:
+    driver: local
+
+networks:
+  mysql-net:
+    driver: bridge
