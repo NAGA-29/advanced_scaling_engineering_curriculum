@@ -1,0 +1,21 @@
+# Terraform state and local files
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+
+# Go build artifacts generated per-step (not checked in; shared/ modules track their own)
+step*/go.sum
+step*/go.mod
+
+# Environment files
+.env
+*.tfvars
+
+# SSH keys
+*.pem
+id_rsa*
+
+# OS files
+.DS_Store
+Thumbs.db
