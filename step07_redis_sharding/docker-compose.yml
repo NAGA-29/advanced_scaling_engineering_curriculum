@@ -1,0 +1,83 @@
+version: "3.9"
+
+# Redis Sharding — 3 independent Redis instances acting as shards.
+# Shard assignment: shard_index = crc32(key) % 3
+#
+# redis-0: shard 0 (port 6379)
+# redis-1: shard 1 (port 6380)
+# redis-2: shard 2 (port 6381)
+
+services:
+  redis-0:
+    image: redis:7.2-alpine
+    container_name: redis-shard-0
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --loglevel notice
+    volumes:
+      - redis0_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  redis-1:
+    image: redis:7.2-alpine
+    container_name: redis-shard-1
+    ports:
+      - "6380:6379"
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --loglevel notice
+    volumes:
+      - redis1_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  redis-2:
+    image: redis:7.2-alpine
+    container_name: redis-shard-2
+    ports:
+      - "6381:6379"
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --loglevel notice
+    volumes:
+      - redis2_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  redis0_data:
+    driver: local
+  redis1_data:
+    driver: local
+  redis2_data:
+    driver: local
