@@ -82,6 +82,23 @@ step14_final_boss_migration_drill/
 
 ---
 
+## 実行手順
+
+```bash
+# 1. 全サービス起動確認
+docker ps  # MySQL, Redis が起動しているか確認
+
+# 2. ミッションチェックリスト実行
+bash scripts/mission_checklist.sh
+
+# 3. k6 最終テスト実行
+k6 run k6/final_test.js
+
+# 4. report.md を記入して演習完了
+```
+
+---
+
 ## 11のミッション
 
 ### MISSION 01: 初期状態の確認と計測
