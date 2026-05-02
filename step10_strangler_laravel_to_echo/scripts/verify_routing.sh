@@ -33,8 +33,8 @@ FAIL=0
 # ── ヘルパー関数 ──────────────────────────────────────────────────────────────
 
 log_info() { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_pass() { echo -e "${GREEN}[PASS]${NC} $*"; ((PASS++)); }
-log_fail() { echo -e "${RED}[FAIL]${NC} $*"; ((FAIL++)); }
+log_pass() { echo -e "${GREEN}[PASS]${NC} $*"; PASS=$((PASS + 1)); }
+log_fail() { echo -e "${RED}[FAIL]${NC} $*"; FAIL=$((FAIL + 1)); }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 
 # check_routing: パスにリクエストして X-Handled-By が期待値と一致するか確認
