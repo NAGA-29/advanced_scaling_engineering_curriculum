@@ -9,7 +9,7 @@ CREATE USER IF NOT EXISTS 'replicator'@'%'
 GRANT REPLICATION SLAVE ON *.* TO 'replicator'@'%';
 
 -- apiuser にも % からのアクセスを許可（Docker ネットワーク内から接続するため）
-GRANT ALL PRIVILEGES ON appdb.* TO 'apiuser'@'%' IDENTIFIED BY 'apipassword';
+GRANT ALL PRIVILEGES ON appdb.* TO 'apiuser'@'%';
 FLUSH PRIVILEGES;
 
 -- テーブル作成
