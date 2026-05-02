@@ -126,14 +126,10 @@ function performWrite() {
   const tenantId = randomTenantId();
   const email = uniqueEmail();
 
-  const payload = JSON.stringify({
-    tenant_id: tenantId,
-    name: `LoadTest User ${__VU}`,
-    email: email,
-  });
+  const payload = `tenant_id=${encodeURIComponent(tenantId)}&name=${encodeURIComponent(`LoadTest User ${__VU}`)}&email=${encodeURIComponent(email)}`;
 
   const res = http.post(`${BASE_URL}/users`, payload, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     tags: { operation: 'write', pattern: 'create_user' },
   });
 
