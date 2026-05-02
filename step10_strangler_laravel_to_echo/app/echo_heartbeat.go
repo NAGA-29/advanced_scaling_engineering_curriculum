@@ -1,14 +1,26 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
+
+// getEnv は環境変数を取得し、未設定の場合はデフォルト値を返す
+func getEnv(key, defaultVal string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return defaultVal
+}
 
 // HeartbeatResponse は Laravel の HeartbeatController と同じ JSON 形式を返す
 type HeartbeatResponse struct {
@@ -35,10 +47,7 @@ func main() {
 	e.Use(RequestIDMiddleware()) // X-Request-ID 伝播
 
 	// ── JWT シークレット (環境変数から取得、デフォルトは dev 用) ─────
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		jwtSecret = "dev-secret-change-in-production"
-	}
+	jwtSecret := getEnv("JWT_SECRET", "dev-secret-change-in-production")
 
 	// ── 認証不要ルート ────────────────────────────────────────────────
 	// /health は JWT なしでヘルスチェック可能
@@ -47,14 +56,15 @@ func main() {
 	// ── 認証必要ルート ────────────────────────────────────────────────
 	// JWT ミドルウェアを適用したグループ
 	protected := e.Group("")
-	protected.Use(middleware.JWTWithConfig(middleware.JWTConfig{
-		Claims:     &JWTClaims{},
-		SigningKey:  []byte(jwtSecret),
+	protected.Use(echojwt.WithConfig(echojwt.Config{
+		NewClaimsFunc: func(c echo.Context) jwt.Claims {
+			return new(JWTClaims)
+		},
+		SigningKey:   []byte(jwtSecret),
 		TokenLookup: "header:Authorization",
 		AuthScheme:  "Bearer",
-		// 開発時は JWT エラーをスキップするオプション
-		// ErrorHandlerWithContext はカスタムエラーを返す
-		ErrorHandlerWithContext: func(err error, c echo.Context) error {
+		// カスタムエラーハンドラ: JWT エラー時に 401 JSON を返す
+		ErrorHandler: func(c echo.Context, err error) error {
 			return c.JSON(http.StatusUnauthorized, map[string]interface{}{
 				"error":   "unauthorized",
 				"message": "JWT token missing or invalid",
@@ -69,12 +79,27 @@ func main() {
 	// POST /events (step11 の非同期キューと連携)
 	protected.POST("/events", eventsHandler)
 
-	// ── サーバー起動 ──────────────────────────────────────────────────
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	// ── サーバー起動 (シグナル受信時にグレースフルシャットダウン) ───
+	port := getEnv("PORT", "8080")
+	srv := &http.Server{Addr: ":" + port, Handler: e}
+
+	go func() {
+		e.Logger.Infof("Starting server on :%s", port)
+		if err := e.StartServer(srv); err != nil && err != http.ErrServerClosed {
+			e.Logger.Fatal("shutting down the server")
+		}
+	}()
+
+	// OS シグナルを待機
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		e.Logger.Fatal(err)
 	}
-	e.Logger.Fatal(e.Start(":" + port))
 }
 
 // heartbeatHandler は Laravel の HeartbeatController::index() と同等の処理を行う

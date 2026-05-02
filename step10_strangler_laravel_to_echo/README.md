@@ -106,6 +106,7 @@ cd step10_strangler_laravel_to_echo/app
 go mod init github.com/advanced-scaling/step10
 go get github.com/labstack/echo/v4
 go get github.com/golang-jwt/jwt/v5
+go get github.com/labstack/echo-jwt/v4
 go get github.com/google/uuid
 go run *.go
 ```
